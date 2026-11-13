@@ -79,6 +79,7 @@ button[aria-pressed="true"]{background:var(--soft);border-color:var(--accent)}
 button:disabled{opacity:.45;cursor:default}
 button:disabled:hover{border-color:var(--line)}
 .nudge{grid-template-columns:repeat(4,1fr) 1.7fr}
+.grid4{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
 input.maxed{opacity:.5;border-style:dashed}
 .warnhint{color:var(--warn)}
 .exportbar{position:sticky;bottom:0;background:var(--panel);margin-top:auto;padding:10px 0 14px;border-top:1px solid var(--line);display:flex;flex-direction:column;gap:6px;z-index:2}
@@ -129,11 +130,12 @@ input.maxed{opacity:.5;border-style:dashed}
       <h2>4 · Size <span class="hint">mm</span></h2>
       <div class="grid3">
         <label>Letter height<input id="height" type="number" step="0.5" min="1" value="7"></label>
-        <label>Max width<input id="maxW" type="number" step="1" min="5" value="40"></label>
+        <label>Width<input id="nameW" type="number" step="1" min="3" title="Actual width of the name. Change it to resize the name; the height follows."></label>
         <label>Raise<input id="depth" type="number" step="0.1" min="0.2" value="1"></label>
       </div>
       <p class="hint warnhint" id="fitHint" hidden></p>
-      <div class="grid3">
+      <div class="grid4">
+        <label>Max width<input id="maxW" type="number" step="1" min="5" value="40" title="Names wider than this shrink to fit (not used when a name area is set)"></label>
         <label>Spacing<input id="spacing" type="number" step="0.1" value="0"></label>
         <label>Line gap<input id="lineGap" type="number" step="0.5" value="2"></label>
         <label>Rotate °<input id="rot" type="number" step="1" value="0"></label>
@@ -525,13 +527,20 @@ $('fontSel').addEventListener('change',()=>{rememberFont();rebuild();commit();})
 
 /* ---------- size limit: grey out letter height when the area is full ---------- */
 let heightEdited=false;
-function fitLimit(r){ const hEl=$('height'), hint=$('fitHint');
-  if(!r||!isFinite(r.fitMax)){ hEl.removeAttribute('max'); hEl.classList.remove('maxed'); hint.hidden=true; heightEdited=false; return; }
+let lastR=null, widthKeyAt=0;
+function fitLimit(r){ const hEl=$('height'), wEl=$('nameW'), hint=$('fitHint'); lastR=r;
+  if(r&&Date.now()-widthKeyAt>1500) wEl.value=r.w.toFixed(1); if(!r) wEl.value='';
+  if(!r||!isFinite(r.fitMax)){ hEl.classList.remove('maxed'); wEl.classList.remove('maxed'); hint.hidden=true; heightEdited=false; return; }
   readP(); const mx=Math.floor(r.fitMax*10)/10;
-  if(heightEdited&&P.height>mx+1e-6&&mx>0){ heightEdited=false; hEl.value=mx; rebuild(); commitSoon(); return; }
-  heightEdited=false; hEl.max=mx;
-  const maxed=P.height+0.5>mx+1e-6; hEl.classList.toggle('maxed',maxed);
-  hint.hidden=!maxed; if(maxed) hint.textContent=`Largest letter height that fits ${area?'the name area':'the max width'}: ${mx} mm`+(names.length>1?` (for ${names[pv]})`:'')+'.'; }
+  /* no max attribute, so the arrows can step past the last 0.5 mark; anything over the limit snaps back to exactly the max */
+  if(heightEdited&&P.height>mx+1e-6&&mx>0){ heightEdited=false; widthKeyAt=0; hEl.value=mx; rebuild(); commitSoon(); return; }
+  heightEdited=false;
+  const maxed=P.height>=mx-1e-6; hEl.classList.toggle('maxed',maxed); wEl.classList.toggle('maxed',maxed);
+  hint.hidden=!maxed; if(maxed) hint.textContent=`Max ${mx} mm: the largest that fits ${area?'the name area':'the max width'}`+(names.length>1?` (for ${names[pv]})`:'')+'.'; }
+$('nameW').addEventListener('keydown',e=>{ if(e.key.length===1||e.key==='Backspace'||e.key==='Delete') widthKeyAt=Date.now(); else if(e.key==='ArrowUp'||e.key==='ArrowDown') widthKeyAt=0; });
+$('nameW').addEventListener('input',()=>{ const W=parseFloat($('nameW').value); if(!(W>0)||!lastR||!lastR.w) return;
+  $('height').value=+(lastR.cap*W/lastR.w).toFixed(2); heightEdited=true; rebuild(); commitSoon(); });
+$('nameW').addEventListener('blur',()=>{ widthKeyAt=0; if(lastR) $('nameW').value=lastR.w.toFixed(1); });
 
 /* ---------- height check: does the name sit on the tag, how tall is it ---------- */
 function rimTop(box){ const pos=modelMesh.geometry.attributes.position.array, e=4; let z=-1e9;
