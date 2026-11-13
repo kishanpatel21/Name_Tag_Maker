@@ -46,7 +46,7 @@ button.small{padding:6px 9px;font-size:13px;flex:0 0 auto}
 .chips{display:flex;flex-wrap:wrap;gap:6px}
 .chip{font:600 13px var(--f-body);padding:4px 10px;border-radius:999px;border:1px solid var(--line);background:var(--bg);cursor:pointer;color:var(--fg)}
 .chip[aria-pressed="true"]{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
-.viewer{position:relative;background:var(--plate);border:1px solid var(--line);border-radius:14px;overflow:hidden;min-height:520px;height:calc(100vh - 110px);max-height:820px}
+.viewer{position:relative;background:var(--plate);border:1px solid var(--line);border-radius:14px;overflow:hidden;min-height:360px}
 @media (max-width:860px){.viewer{height:420px;min-height:420px}}
 #view{width:100%;height:100%;display:block;touch-action:none}
 .hud{position:absolute;left:12px;right:12px;bottom:12px;display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;pointer-events:none}
@@ -63,88 +63,106 @@ input[type=color]{width:32px;height:28px;border:1px solid var(--line);border-rad
 .file{position:relative;overflow:hidden}
 .file input{position:absolute;inset:0;opacity:0;cursor:pointer}
 details summary{cursor:pointer;font-weight:700;font-size:13px;color:var(--muted)}
+/* compact, no page scroll: panel scrolls on its own, Save stays visible */
+body{display:flex;flex-direction:column;height:100vh;overflow:hidden;padding-block:12px}
+.top{margin-bottom:10px;align-items:center}
+.topbar{display:flex;gap:6px}
+.app{flex:1;min-height:0;grid-template-rows:minmax(0,1fr);align-items:stretch}
+.panel{overflow-y:auto;gap:14px;padding:14px 14px 0;scrollbar-width:thin}
+textarea{min-height:58px}
+.step{gap:6px}
+.step h2{display:flex;justify-content:space-between;align-items:baseline;gap:8px}
+.step h2 .hint{text-transform:none;letter-spacing:0;font-weight:500;font-size:12px}
+.btnrow{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+.btnrow select{flex:1 1 140px;min-width:0;width:auto}
+button[aria-pressed="true"]{background:var(--soft);border-color:var(--accent)}
+button:disabled{opacity:.45;cursor:default}
+button:disabled:hover{border-color:var(--line)}
+.nudge{grid-template-columns:repeat(4,1fr) 1.7fr}
+input.maxed{opacity:.5;border-style:dashed}
+.warnhint{color:var(--warn)}
+.exportbar{position:sticky;bottom:0;background:var(--panel);margin-top:auto;padding:10px 0 14px;border-top:1px solid var(--line);display:flex;flex-direction:column;gap:6px;z-index:2}
+.exportbar .status:empty,.exportbar .hint:empty{display:none}
+.viewtools{position:absolute;top:12px;right:12px;display:flex;gap:6px}
+.viewtools button{background:var(--panel)}
+.viewtools button[aria-pressed="true"]{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.tag.ok{color:var(--ok)}
+.hud{align-items:flex-end}
+.hudl{display:flex;flex-direction:column;align-items:flex-start;gap:6px}
+@media (max-width:860px){body{height:auto;overflow:visible}.panel{overflow:visible}.viewer{height:420px}.app{grid-template-rows:auto}}
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
 
 <div class="top">
   <h1>Name Tag Maker</h1>
-  <p>Pick a tag, type the names, click where the name goes, download STLs for Orca.</p>
+  <div class="topbar"><button class="small" id="undo" type="button" title="Undo (Ctrl+Z)" disabled>&#8630; Undo</button><button class="small" id="redo" type="button" title="Redo (Ctrl+Y)" disabled>&#8631; Redo</button></div>
 </div>
 
 <div class="app">
-  <div class="panel">
+  <div class="panel" id="panel">
     <section class="step">
-      <h2>1 · Tag model</h2>
-      <div class="row">
-        <select id="modelSel" aria-label="Tag model"></select>
+      <h2>1 · Tag model <span class="hint" id="modelInfo"></span></h2>
+      <select id="modelSel" aria-label="Tag model"></select>
+      <div class="btnrow">
         <span class="file"><button class="small" type="button">Add STL / 3MF…</button><input id="modelFile" type="file" accept=".stl,.3mf" multiple aria-label="Add STL or 3MF model"></span>
-      </div>
-      <div class="row"><span class="file"><button class="small" type="button" style="width:100%">Add multi-part model (select all its STLs)…</button><input id="partsFile" type="file" accept=".stl" multiple aria-label="Add multi-part model"></span></div>
-      <div class="row">
-        <button class="small" id="delModel" type="button">Remove this model</button>
-        <span class="hint" id="modelInfo"></span>
+        <span class="file"><button class="small" type="button" title="Select all the STL files of one model at once">Add multi-part…</button><input id="partsFile" type="file" accept=".stl" multiple aria-label="Add multi-part model"></span>
+        <button class="small" id="delModel" type="button">Remove</button>
       </div>
     </section>
 
     <section class="step">
-      <h2>2 · Names</h2>
-      <label>One name per line. Use " / " for two lines, e.g. Emma / Rose
-        <textarea id="names" spellcheck="false" placeholder="Emma&#10;Noah&#10;Liam / Patel"></textarea>
-      </label>
+      <h2>2 · Names <span class="hint">one per line, " / " = 2 lines</span></h2>
+      <textarea id="names" spellcheck="false" aria-label="Names, one per line" placeholder="Emma&#10;Noah&#10;Liam / Patel"></textarea>
       <div class="chips" id="chips" aria-label="Preview name"></div>
     </section>
 
     <section class="step">
       <h2>3 · Font</h2>
-      <div class="row">
+      <div class="btnrow">
         <select id="fontSel" aria-label="Font"></select>
-        <span class="file"><button class="small" type="button">Add font…</button><input id="fontFile" type="file" accept=".ttf,.otf,.woff" multiple aria-label="Add font file"></span>
+        <span class="file"><button class="small" type="button" title="Add a TTF or OTF font, e.g. from C:\Windows\Fonts. It stays saved in this app.">Add…</button><input id="fontFile" type="file" accept=".ttf,.otf,.woff" multiple aria-label="Add font file"></span>
+        <button class="small" id="delFont" type="button" title="Remove this font from the list">Remove</button>
       </div>
-      <div class="row"><button class="small" id="delFont" type="button">Remove this font from the list</button><span class="hint">The font you use last opens next time.</span></div>
-      <p class="hint">Add fonts from C:\Windows\Fonts (TTF/OTF). They stay saved in this browser.</p>
     </section>
 
     <section class="step">
-      <h2>4 · Size</h2>
+      <h2>4 · Size <span class="hint">mm</span></h2>
       <div class="grid3">
-        <label>Letter height<input id="height" type="number" step="0.5" min="2" value="7"></label>
+        <label>Letter height<input id="height" type="number" step="0.5" min="1" value="7"></label>
         <label>Max width<input id="maxW" type="number" step="1" min="5" value="40"></label>
-        <label>Raise<input id="depth" type="number" step="0.2" min="0.2" value="1"></label>
+        <label>Raise<input id="depth" type="number" step="0.1" min="0.2" value="1"></label>
       </div>
+      <p class="hint warnhint" id="fitHint" hidden></p>
       <div class="grid3">
         <label>Spacing<input id="spacing" type="number" step="0.1" value="0"></label>
         <label>Line gap<input id="lineGap" type="number" step="0.5" value="2"></label>
         <label>Rotate °<input id="rot" type="number" step="1" value="0"></label>
       </div>
-      <p class="hint">All in mm. Long names shrink to fit the max width.</p>
+      <div class="btnrow"><button class="small" id="matchRim" type="button" title="Set Raise so the top of the name is level with the raised border around the name area">Raise to border height</button><button class="small" id="sideBtn" type="button" title="Look at the name from the side to check its height">Check height (side view)</button></div>
     </section>
 
     <section class="step">
       <h2>5 · Position</h2>
-      <p class="hint">Best: click <b>Pick name area</b>, then click inside the box the name goes in. The name is centred in that box and sized to fit it.</p>
-      <div class="row">
-        <button class="small" id="pickArea" type="button">Pick name area</button>
-        <button class="small" id="drawArea" type="button">Draw area (2 corners)</button>
-        <button class="small" id="clearArea" type="button">Clear</button>
+      <div class="btnrow">
+        <button class="small" id="pickArea" type="button" title="Then click inside the box the name goes in. The name is centred and sized to fit.">Pick name area</button>
+        <button class="small" id="drawArea" type="button" title="Click two opposite corners">Draw area</button>
+        <button class="small" id="placeClick" type="button" title="Then click on the tag where the name should go">Click to place</button>
+        <button class="small" id="clearArea" type="button">Clear area</button>
       </div>
-      <div class="row">
-        <label>Margin inside area<input id="margin" type="number" step="0.5" min="0" value="2"></label>
-        <span class="hint" id="areaInfo">No area set. Click on the tag to place the name.</span>
-      </div>
-      <div class="grid2">
+      <p class="hint" id="areaInfo">No area set.</p>
+      <div class="grid3">
         <label>X<input id="px" type="number" step="0.5" value="0"></label>
         <label>Y<input id="py" type="number" step="0.5" value="0"></label>
+        <label>Margin<input id="margin" type="number" step="0.5" min="0" value="2" title="Space kept between the name and the edge of the name area"></label>
       </div>
       <div class="nudge">
         <button class="small" data-n="-1,0" type="button" aria-label="Move left">←</button>
         <button class="small" data-n="1,0" type="button" aria-label="Move right">→</button>
         <button class="small" data-n="0,1" type="button" aria-label="Move up">↑</button>
         <button class="small" data-n="0,-1" type="button" aria-label="Move down">↓</button>
+        <button class="small" id="centre" type="button">Centre</button>
       </div>
-      <div class="row">
-        <button class="small" id="centre" type="button">Centre on area</button>
-        <button class="small" id="savePreset" type="button">Save as default for this tag</button>
-      </div>
+      <div class="btnrow"><button class="small" id="savePreset" type="button">Save as default for this tag</button></div>
     </section>
 
     <section class="step">
@@ -154,21 +172,29 @@ details summary{cursor:pointer;font-weight:700;font-size:13px;color:var(--muted)
         <label>Name filament<select id="nameExt"><option value="1">Filament 1</option><option value="2">Filament 2</option><option value="3">Filament 3</option><option value="4">Filament 4</option></select></label>
       </div>
       <p class="hint" id="extHint"></p>
-      <div class="row" id="folderRow" hidden><button class="small" id="pickFolder" type="button">Choose save folder…</button><span class="hint" id="folderInfo">Files go to Downloads.</span></div>
-      <button class="primary" id="export" type="button">Save STL</button>
-      <p class="hint" id="modeHint"></p>
-      <div class="status" id="status" role="status"></div>
+      <div class="btnrow" id="folderRow" hidden><button class="small" id="pickFolder" type="button">Choose save folder…</button><span class="hint" id="folderInfo">Files go to Downloads.</span></div>
       <details><summary>Using the files in Orca</summary>
         <p class="hint"><b>3MF</b> opens in Orca as one object with every part already on its filament, so you just slice and print. Load your filaments to match: for the Tiny Orbit ornaments that is 1 white/cream, 2 green, 3 red, 4 gold. A single-file tag uses filament 1 for the tag and your chosen filament for the name.</p>
       </details>
     </section>
+
+    <div class="exportbar">
+      <button class="primary" id="export" type="button">Save STL</button>
+      <p class="hint" id="modeHint"></p>
+      <div class="status" id="status" role="status"></div>
+    </div>
   </div>
 
   <div class="viewer">
     <canvas id="view" aria-label="3D preview of the tag with the name"></canvas>
     <div class="legend"><b id="legendModel">Sample tag</b> · <span id="legendFont"></span></div>
+    <div class="viewtools" role="group" aria-label="View">
+      <button class="small" data-view="3d" type="button" aria-pressed="true">3D</button>
+      <button class="small" data-view="top" type="button" aria-pressed="false">Top</button>
+      <button class="small" data-view="side" type="button" aria-pressed="false">Side</button>
+    </div>
     <div class="hud">
-      <span class="tag" id="dims">–</span>
+      <span class="hudl"><span class="tag" id="check" hidden></span><span class="tag" id="dims">–</span></span>
       <span class="colours tag"><label>Tag <input id="cTag" type="color" value="#F2C230"></label><label>Name <input id="cName" type="color" value="#1D2B8F"></label></span>
     </div>
   </div>
@@ -218,8 +244,8 @@ function refreshFonts(sel){ const fs=$('fontSel'); fs.innerHTML='';
 function rememberFont(){ const v=$('fontSel').value; LS.set('font',v); IDB.put('presets','__font',v); }
 refreshFonts(savedMeta.get('__font')||LS.get('font',null));
 $('delFont').addEventListener('click',async()=>{ const n=$('fontSel').value; if(visibleFonts().length<=1){ say('Keep at least one font in the list.','err'); return; }
-  const b=$('delFont'); if(b.dataset.confirm!=='1'){ b.dataset.confirm='1'; b.textContent='Click again to remove '+n; setTimeout(()=>{b.dataset.confirm='';b.textContent='Remove this font from the list';},3000); return; }
-  b.dataset.confirm=''; b.textContent='Remove this font from the list';
+  const b=$('delFont'); if(b.dataset.confirm!=='1'){ b.dataset.confirm='1'; b.textContent='Click again to remove'; setTimeout(()=>{b.dataset.confirm='';b.textContent='Remove';},3000); return; }
+  b.dataset.confirm=''; b.textContent='Remove';
   if(fonts.get(n).builtin){ hiddenFonts.add(n); LS.set('hiddenFonts',[...hiddenFonts]); await IDB.put('presets','__hiddenFonts',[...hiddenFonts]); }
   else { fonts.delete(n); await IDB.del('fonts',n); }
   refreshFonts(null); rememberFont(); rebuild(); say('Removed '+n+' from the list.','ok'); });
@@ -326,8 +352,8 @@ $('partsFile').addEventListener('change',async e=>{ const fs=[...e.target.files]
     models.set(name,{name,parts,geom:partsGeom(parts.map(p=>p.buf))}); await IDB.put('models',name,{parts}); say('Added '+name+' with '+parts.length+' parts','ok'); selectModel(name);
   }catch(err){ say('Could not read those STL files.','err'); } });
 $('delModel').addEventListener('click',async()=>{ if(cur==='__sample') return; const n=cur;
-  if($('delModel').dataset.confirm!=='1'){ $('delModel').dataset.confirm='1'; $('delModel').textContent='Click again to remove'; setTimeout(()=>{$('delModel').dataset.confirm='';$('delModel').textContent='Remove this model';},3000); return; }
-  models.delete(n); await IDB.del('models',n); $('delModel').dataset.confirm=''; $('delModel').textContent='Remove this model'; selectModel('__sample'); say('Removed '+n,'ok'); });
+  if($('delModel').dataset.confirm!=='1'){ $('delModel').dataset.confirm='1'; $('delModel').textContent='Click again to remove'; setTimeout(()=>{$('delModel').dataset.confirm='';$('delModel').textContent='Remove';},3000); return; }
+  models.delete(n); await IDB.del('models',n); $('delModel').dataset.confirm=''; $('delModel').textContent='Remove'; selectModel('__sample'); say('Removed '+n,'ok'); });
 
 const ray=new THREE.Raycaster();
 function surfaceZ(x,y){ const bb=modelMesh.geometry.boundingBox; ray.set(new THREE.Vector3(x,y,bb.max.z+50),new THREE.Vector3(0,0,-1));
@@ -370,23 +396,26 @@ canvas.addEventListener('pointermove',e=>{ if(!pickMode||e.buttons) return; hovP
   ray.setFromCamera(v,camera); const hit=ray.intersectObject(modelMesh,false)[0]; const m=models.get(cur);
   if(!hit){ if(pickMode==='region'){ clearHover(); $('areaInfo').textContent='Move over the tag.'; } return; }
   if(pickMode==='region'){ const rg=regionData(m,hit.faceIndex); if(rg) showRegion(m,rg); else { clearHover(); $('areaInfo').textContent='Not a flat top surface here.'; } }
+  else if(pickMode==='place'){ showDot(hit.point); }
   else { const sp=snapVertex(m,hit.point); showDot({x:sp.x,y:sp.y,z:hit.point.z}); } }); });
 canvas.addEventListener('pointerleave',()=>{ if(pickMode==='region') clearHover(); });
 function snapVertex(m,p){ const pos=m.geom.attributes.position.array; let best=null,bd=1.5*1.5;
   for(let i=0;i<pos.length;i+=3){ const dx=pos[i]-p.x, dy=pos[i+1]-p.y, d=dx*dx+dy*dy; if(d<bd&&Math.abs(pos[i+2]-p.z)<1.5){bd=d;best={x:pos[i],y:pos[i+1]};} }
   return best||{x:p.x,y:p.y}; }
 function drawArea(){ if(areaLine){scene.remove(areaLine);areaLine.geometry.dispose();areaLine=null;}
-  if(!area){ $('areaInfo').textContent='No area set. Click on the tag to place the name.'; $('maxW').disabled=false; return; }
+  if(!area){ $('areaInfo').textContent='No area set. Use Pick name area, or Click to place.'; $('maxW').disabled=false; return; }
   const z=(area.z??modelMesh.geometry.boundingBox.max.z)+0.05; const pts=[[area.minx,area.miny],[area.maxx,area.miny],[area.maxx,area.maxy],[area.minx,area.maxy],[area.minx,area.miny]].map(([x,y])=>new THREE.Vector3(x,y,z));
   areaLine=new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts),new THREE.LineDashedMaterial({color:0xE0218A,dashSize:1.2,gapSize:0.8})); areaLine.computeLineDistances(); scene.add(areaLine);
   $('areaInfo').textContent=`Area ${(area.maxx-area.minx).toFixed(1)} × ${(area.maxy-area.miny).toFixed(1)} mm, centre ${((area.minx+area.maxx)/2).toFixed(2)}, ${((area.miny+area.maxy)/2).toFixed(2)}`;
   $('maxW').disabled=true; }
 function centreOnArea(){ if(area) writeP({px:(area.minx+area.maxx)/2,py:(area.miny+area.maxy)/2}); }
 function setPick(mode){ pickMode=mode; corner1=null; canvas.style.cursor=mode?'crosshair':''; if(!mode){ clearHover(); }
-  if(mode==='region') say('Click inside the box where the name goes.'); else if(mode==='corner1') say('Click the first corner of the name area.'); }
-$('pickArea').addEventListener('click',()=>setPick('region'));
-$('drawArea').addEventListener('click',()=>setPick('corner1'));
-$('clearArea').addEventListener('click',()=>{ area=null; drawArea(); rebuild(); say(''); });
+  $('pickArea').setAttribute('aria-pressed',mode==='region'); $('drawArea').setAttribute('aria-pressed',mode==='corner1'||mode==='corner2'); $('placeClick').setAttribute('aria-pressed',mode==='place');
+  if(mode==='region') say('Click inside the box where the name goes. Esc to cancel.'); else if(mode==='corner1') say('Click the first corner of the name area. Esc to cancel.'); else if(mode==='place') say('Click on the tag where the name should go. Esc to cancel.'); }
+$('pickArea').addEventListener('click',()=>setPick(pickMode==='region'?null:'region'));
+$('placeClick').addEventListener('click',()=>setPick(pickMode==='place'?null:'place'));
+$('drawArea').addEventListener('click',()=>setPick(pickMode==='corner1'||pickMode==='corner2'?null:'corner1'));
+$('clearArea').addEventListener('click',()=>{ area=null; drawArea(); rebuild(); say(''); commit(); });
 function readP(){ for(const f of FIELDS) P[f]=parseFloat($(f).value)||0; }
 function writeP(o){ for(const f of FIELDS) if(o[f]!=null) $(f).value=+(+o[f]).toFixed(2); }
 function selectModel(id){ cur=id; LS.set('model',id); refreshModels(); const m=models.get(id);
@@ -403,11 +432,11 @@ function selectModel(id){ cur=id; LS.set('model',id); refreshModels(); const m=m
   if(pr){ writeP({px:pr.x??c.x,py:pr.y??c.y,height:pr.height,maxW:pr.maxW,depth:pr.depth,spacing:pr.spacing,lineGap:pr.lineGap,rot:pr.rot,margin:pr.margin}); }
   else writeP({px:c.x,py:c.y,maxW:Math.max(10,Math.round(sz.x*0.7))});
   drawArea(); $('nameExt').value=(pr&&pr.nameExt)||(m.parts?'3':'2'); if(typeof updateBtn==='function') try{updateBtn();}catch(e){}
-  rebuild(); }
-$('centre').addEventListener('click',()=>{ if(area) centreOnArea(); else { const c=modelMesh.geometry.boundingBox.getCenter(new THREE.Vector3()); writeP({px:c.x,py:c.y}); } rebuild(); });
+  viewMode='3d'; markView(); rebuild(); commit(); }
+$('centre').addEventListener('click',()=>{ if(area) centreOnArea(); else { const c=modelMesh.geometry.boundingBox.getCenter(new THREE.Vector3()); writeP({px:c.x,py:c.y}); } rebuild(); commit(); });
 $('savePreset').addEventListener('click',async()=>{ readP(); const pr={x:P.px,y:P.py,height:P.height,maxW:P.maxW,depth:P.depth,spacing:P.spacing,lineGap:P.lineGap,rot:P.rot,margin:P.margin,font:$('fontSel').value,area};
   presets.set(cur,pr); const ok=await IDB.put('presets',cur,pr); say(ok===null?'Saved for this session (this browser is not keeping data).':'Saved. This tag will open with these settings next time.','ok'); });
-document.querySelectorAll('[data-n]').forEach(b=>b.addEventListener('click',()=>{ const [dx,dy]=b.dataset.n.split(',').map(Number); readP(); writeP({px:P.px+dx*0.5,py:P.py+dy*0.5}); rebuild(); }));
+document.querySelectorAll('[data-n]').forEach(b=>b.addEventListener('click',()=>{ const [dx,dy]=b.dataset.n.split(',').map(Number); readP(); writeP({px:P.px+dx*0.5,py:P.py+dy*0.5}); rebuild(); commit(); }));
 
 /* click to place */
 let down=null;
@@ -418,11 +447,12 @@ canvas.addEventListener('pointerup',e=>{ if(!down||Math.hypot(e.clientX-down[0],
   if(!hit){ return; } const m=models.get(cur);
   if(pickMode==='region'){ const bb=regionBox(m,hit.faceIndex);
     if(!bb){ say('That spot is not a flat top surface. Click on the flat floor inside the box.','err'); return; }
-    area=bb; setPick(null); centreOnArea(); drawArea(); rebuild(); say('Name area set. Click "Save as default" to keep it for this tag.','ok'); return; }
+    area=bb; setPick(null); centreOnArea(); drawArea(); rebuild(); commit(); say('Name area set. Click "Save as default" to keep it for this tag.','ok'); return; }
   if(pickMode==='corner1'){ corner1=snapVertex(m,hit.point); corner1.z=hit.point.z; pickMode='corner2'; say('Now click the opposite corner.'); return; }
   if(pickMode==='corner2'){ const c2=snapVertex(m,hit.point); area={minx:Math.min(corner1.x,c2.x),maxx:Math.max(corner1.x,c2.x),miny:Math.min(corner1.y,c2.y),maxy:Math.max(corner1.y,c2.y),z:Math.max(corner1.z,hit.point.z)};
-    setPick(null); centreOnArea(); drawArea(); rebuild(); say('Name area set. Click "Save as default" to keep it for this tag.','ok'); return; }
-  writeP({px:hit.point.x,py:hit.point.y}); rebuild(); });
+    setPick(null); centreOnArea(); drawArea(); rebuild(); commit(); say('Name area set. Click "Save as default" to keep it for this tag.','ok'); return; }
+  if(pickMode==='place'){ writeP({px:hit.point.x,py:hit.point.y}); setPick(null); rebuild(); commit(); say('Name placed. Ctrl+Z to undo.','ok'); }
+  /* a plain click without a mode does nothing, so stray clicks never move the name */ });
 
 /* ---------- text geometry ---------- */
 function polyArea(p){let a=0;for(let i=0,n=p.length;i<n;i++){const q=p[(i+1)%n];a+=p[i].x*q.y-q.x*p[i].y;}return a/2;}
@@ -461,13 +491,15 @@ function buildText(name){ readP(); const font=fonts.get($('fontSel').value).font
   let g=lineGeo.length>1?mergeGeometries(lineGeo.map(x=>x.index?x.toNonIndexed():x)):lineGeo[0];
   g.computeBoundingBox(); let bb=g.boundingBox; const w=bb.max.x-bb.min.x;
   const hgt=bb.max.y-bb.min.y;
-  if(area){ const aw=area.maxx-area.minx-2*P.margin, ah=area.maxy-area.miny-2*P.margin; scale=Math.min(1,aw>0?aw/w:1,ah>0?ah/hgt:1); }
-  else if(w>P.maxW && P.maxW>0) scale=P.maxW/w;
+  let fit=Infinity;
+  if(area){ const aw=area.maxx-area.minx-2*P.margin, ah=area.maxy-area.miny-2*P.margin; fit=Math.min(aw>0?aw/w:Infinity,ah>0?ah/hgt:Infinity); }
+  else if(P.maxW>0) fit=P.maxW/w;
+  scale=Math.min(1,fit);
   g.translate(-(bb.min.x+bb.max.x)/2,-(bb.min.y+bb.max.y)/2,0);
   const embed=0.2; const z0=surfaceZ(P.px,P.py);
   g.scale(scale,scale,P.depth+embed); g.rotateZ(P.rot*Math.PI/180); g.translate(P.px,P.py,z0-embed);
   g.computeVertexNormals(); g.computeBoundingBox();
-  return {geom:g,scale,w:w*scale,h:(bb.max.y-bb.min.y)*scale,cap:P.height*scale,z0}; }
+  return {geom:g,scale,w:w*scale,h:(bb.max.y-bb.min.y)*scale,cap:P.height*scale,z0,fitMax:P.height*fit}; }
 
 /* ---------- names ---------- */
 let names=[], pv=0;
@@ -479,16 +511,98 @@ let t=null;
 function rebuild(){ clearTimeout(t); t=setTimeout(doRebuild,60); }
 function doRebuild(){ if(textMesh){scene.remove(textMesh);textMesh.geometry.dispose();textMesh=null;}
   $('legendFont').textContent=$('fontSel').value;
-  if(!names.length){ $('dims').textContent='Type a name to start'; return; }
+  if(!names.length){ $('dims').textContent='Type a name to start'; $('check').hidden=true; fitLimit(null); clearGuides(); return; }
   try{ const r=buildText(names[pv]); if(!r){ $('dims').textContent='No printable letters in this name'; return; }
     textMesh=new THREE.Mesh(r.geom,nameMat); scene.add(textMesh);
     const d=$('dims'); d.textContent=`${r.w.toFixed(1)} × ${r.h.toFixed(1)} mm · letters ${r.cap.toFixed(1)} mm`+(r.scale<0.999?' · shrunk to fit':'');
     d.classList.toggle('warn',r.cap<4.5);
     if(r.cap<4.5) d.textContent+=' · small, may print poorly';
+    fitLimit(r); scheduleCheck(r); if(viewMode==='side') drawGuides();
   }catch(err){ $('dims').textContent='This font could not draw the name'; console.error(err); } }
-['names'].forEach(id=>$(id).addEventListener('input',()=>{parseNames();rebuild();}));
-FIELDS.forEach(id=>$(id).addEventListener('input',rebuild));
-$('fontSel').addEventListener('change',()=>{rememberFont();rebuild();});
+['names'].forEach(id=>$(id).addEventListener('input',()=>{parseNames();rebuild();commitSoon();}));
+FIELDS.forEach(id=>$(id).addEventListener('input',()=>{ if(id==='height') heightEdited=true; rebuild(); commitSoon(); }));
+$('fontSel').addEventListener('change',()=>{rememberFont();rebuild();commit();});
+
+/* ---------- size limit: grey out letter height when the area is full ---------- */
+let heightEdited=false;
+function fitLimit(r){ const hEl=$('height'), hint=$('fitHint');
+  if(!r||!isFinite(r.fitMax)){ hEl.removeAttribute('max'); hEl.classList.remove('maxed'); hint.hidden=true; heightEdited=false; return; }
+  readP(); const mx=Math.floor(r.fitMax*10)/10;
+  if(heightEdited&&P.height>mx+1e-6&&mx>0){ heightEdited=false; hEl.value=mx; rebuild(); commitSoon(); return; }
+  heightEdited=false; hEl.max=mx;
+  const maxed=P.height+0.5>mx+1e-6; hEl.classList.toggle('maxed',maxed);
+  hint.hidden=!maxed; if(maxed) hint.textContent=`Largest letter height that fits ${area?'the name area':'the max width'}: ${mx} mm`+(names.length>1?` (for ${names[pv]})`:'')+'.'; }
+
+/* ---------- height check: does the name sit on the tag, how tall is it ---------- */
+function rimTop(box){ const pos=modelMesh.geometry.attributes.position.array, e=4; let z=-1e9;
+  for(let i=0;i<pos.length;i+=3){ const x=pos[i],y=pos[i+1]; if(x>=box.minx-e&&x<=box.maxx+e&&y>=box.miny-e&&y<=box.maxy+e&&pos[i+2]>z) z=pos[i+2]; } return z; }
+function nameBox(r){ const b=r.geom.boundingBox; return {minx:b.min.x,maxx:b.max.x,miny:b.min.y,maxy:b.max.y}; }
+let lastCheck=null, checkT=null;
+function scheduleCheck(r){ clearTimeout(checkT); const g=r.geom; checkT=setTimeout(()=>{ if(!textMesh||textMesh.geometry!==g) return; lastCheck=seatCheck(r); showCheck(lastCheck); if(viewMode==='side') drawGuides(); },200); }
+function seatCheck(r){ readP(); const pos=r.geom.attributes.position.array, base=r.z0-0.2; const idx=[];
+  for(let i=0;i<pos.length;i+=3) if(Math.abs(pos[i+2]-base)<1e-3) idx.push(i);
+  const step=Math.max(1,Math.floor(idx.length/70)); const top=modelMesh.geometry.boundingBox.max.z+50;
+  let off=0, gap=0, bury=0, n=0;
+  for(let k=0;k<idx.length;k+=step){ const i=idx[k]; n++;
+    ray.set(new THREE.Vector3(pos[i],pos[i+1],top),new THREE.Vector3(0,0,-1)); const h=ray.intersectObject(modelMesh,false)[0];
+    if(!h){ off++; continue; } const sz=h.point.z; if(sz<base) gap=Math.max(gap,base-sz); if(sz>r.z0+0.05) bury=Math.max(bury,sz-r.z0); }
+  const rim=rimTop(area||nameBox(r)); const border=rim-r.z0>0.1?rim-r.z0:0;
+  return {z0:r.z0,depth:P.depth,off:off/Math.max(1,n),gap,bury,border,rim}; }
+function showCheck(c){ const el=$('check'); el.hidden=false; el.classList.remove('ok','warn'); const f=v=>(+v.toFixed(2)).toString();
+  let msg, ok=true;
+  if(c.off>0.02){ ok=false; msg='⚠ Part of the name hangs off the tag'; }
+  else if(c.gap>0.02){ ok=false; msg=`⚠ Name floats up to ${f(c.gap)} mm above the tag in places`; }
+  else if(c.bury>0.1){ ok=false; msg=`⚠ Name runs into a raised part (${f(c.bury)} mm)`; }
+  else msg='✓ Sits on the tag';
+  msg+=` · name ${f(c.depth)} mm tall`;
+  if(c.border){ const d=c.depth-c.border; msg+=Math.abs(d)<0.05?` · level with the ${f(c.border)} mm border`:` · border ${f(c.border)} mm (${d>0?'+':''}${f(d)})`; }
+  el.textContent=msg; el.classList.add(ok?'ok':'warn'); }
+$('matchRim').addEventListener('click',()=>{ if(!textMesh||!lastCheck){ say('Type a name first.','err'); return; }
+  if(!lastCheck.border){ say('There is no raised border around '+(area?'the name area':'the name')+'. Pick the name area first.','err'); return; }
+  writeP({depth:lastCheck.border}); rebuild(); commit(); say(`Raise set to ${+lastCheck.border.toFixed(2)} mm, level with the border.`,'ok'); });
+
+/* ---------- views ---------- */
+let viewMode='3d', guides=[];
+function markView(){ document.querySelectorAll('[data-view]').forEach(b=>b.setAttribute('aria-pressed',b.dataset.view===viewMode)); $('sideBtn').setAttribute('aria-pressed',viewMode==='side'); }
+function clearGuides(){ for(const g of guides){ scene.remove(g); g.geometry.dispose(); } guides=[]; }
+function drawGuides(){ clearGuides(); if(viewMode!=='side'||!textMesh||!lastCheck) return;
+  const bb=modelMesh.geometry.boundingBox, tb=textMesh.geometry.boundingBox, y=(tb.min.y+tb.max.y)/2, x0=bb.min.x-3, x1=bb.max.x+3;
+  const line=(z,col,dash)=>{ const g=new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(x0,y,z),new THREE.Vector3(x1,y,z)]);
+    const l=new THREE.Line(g,dash?new THREE.LineDashedMaterial({color:col,dashSize:1,gapSize:.7,depthTest:false}):new THREE.LineBasicMaterial({color:col,depthTest:false}));
+    if(dash) l.computeLineDistances(); l.renderOrder=10; scene.add(l); guides.push(l); };
+  line(lastCheck.z0,0x1E9E5A,false); line(lastCheck.z0+lastCheck.depth,0xE0218A,false); if(lastCheck.border) line(lastCheck.rim,0xD4A63A,true); }
+function setView(v){ viewMode=v; markView(); const bb=modelMesh.geometry.boundingBox, c=bb.getCenter(new THREE.Vector3()), sz=bb.getSize(new THREE.Vector3()), r=Math.max(sz.x,sz.y,10);
+  if(v==='3d'){ controls.target.copy(c); camera.position.set(c.x-r*0.15,c.y-r*1.35,c.z+r*1.6); }
+  else if(v==='top'){ controls.target.copy(c); camera.position.set(c.x,c.y-r*0.002,c.z+r*2.7); }
+  else { const tb=textMesh?textMesh.geometry.boundingBox:bb, tc=tb.getCenter(new THREE.Vector3()), w=Math.max(tb.max.x-tb.min.x,12);
+    controls.target.copy(tc); camera.position.set(tc.x,tc.y-w*1.25,tc.z); }
+  controls.update(); drawGuides();
+  if(v==='side') say('Side view: green = tag surface, pink = top of the name, gold dashes = border top.'); }
+document.querySelectorAll('[data-view]').forEach(b=>b.addEventListener('click',()=>setView(b.dataset.view)));
+$('sideBtn').addEventListener('click',()=>setView(viewMode==='side'?'3d':'side'));
+
+/* ---------- undo / redo (whole-app history, not just typing) ---------- */
+const H={stack:[],i:-1,lock:false,timer:null};
+function snap(){ return {model:cur,names:$('names').value,font:$('fontSel').value,area:area?{...area}:null,f:Object.fromEntries(FIELDS.map(k=>[k,$(k).value]))}; }
+function updUndo(){ $('undo').disabled=H.i<=0; $('redo').disabled=H.i>=H.stack.length-1; }
+function commit(){ if(H.lock) return; clearTimeout(H.timer); H.timer=null; const s=snap();
+  if(H.i>=0&&JSON.stringify(H.stack[H.i])===JSON.stringify(s)) return;
+  H.stack.length=H.i+1; H.stack.push(s); if(H.stack.length>200) H.stack.shift(); H.i=H.stack.length-1; updUndo(); }
+function commitSoon(){ if(H.lock) return; clearTimeout(H.timer); H.timer=setTimeout(commit,600); }
+function restore(s){ H.lock=true;
+  try{ if(s.model!==cur&&models.has(s.model)) selectModel(s.model);
+    $('names').value=s.names; if([...$('fontSel').options].some(o=>o.value===s.font)){ $('fontSel').value=s.font; rememberFont(); }
+    area=s.area?{...s.area}:null; for(const k of FIELDS) $(k).value=s.f[k];
+    setPick(null); parseNames(); drawArea(); updateBtn(); rebuild(); }
+  finally{ H.lock=false; } updUndo(); }
+function undo(){ if(H.timer) commit(); if(H.i>0){ H.i--; restore(H.stack[H.i]); say('Undone.'); } }
+function redo(){ if(H.timer) commit(); if(H.i<H.stack.length-1){ H.i++; restore(H.stack[H.i]); say('Redone.'); } }
+$('undo').addEventListener('click',undo); $('redo').addEventListener('click',redo);
+document.addEventListener('keydown',e=>{
+  if(e.key==='Escape'&&pickMode){ setPick(null); say(''); return; }
+  if(!(e.ctrlKey||e.metaKey)||e.altKey) return; const k=e.key.toLowerCase();
+  if(k==='z'&&!e.shiftKey){ e.preventDefault(); undo(); }
+  else if(k==='y'||(k==='z'&&e.shiftKey)){ e.preventDefault(); redo(); } },true);
 
 /* ---------- export ---------- */
 const exporter=new STLExporter();
