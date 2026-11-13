@@ -24,4 +24,4 @@ FILES
 - index.html            the whole tool (three.js, opentype.js, JSZip from CDNs)
 - manifest.webmanifest  app name, icons, colours for installing
 - sw.js                 offline cache
-- icon-192.png, icon-512.png
+- icon-192.png, icon-512.png  app icons (drawn from icon.svg)

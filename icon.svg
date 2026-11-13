@@ -1,0 +1,52 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#2337C6"/>
+      <stop offset="1" stop-color="#0B1236"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="0.5" cy="0.52" r="0.5">
+      <stop offset="0" stop-color="#4F6BFF" stop-opacity="0.55"/>
+      <stop offset="1" stop-color="#4F6BFF" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="disc" cx="0.38" cy="0.32" r="0.8">
+      <stop offset="0" stop-color="#FFF9EC"/>
+      <stop offset="0.7" stop-color="#F3E6CB"/>
+      <stop offset="1" stop-color="#DCC9A4"/>
+    </radialGradient>
+    <linearGradient id="gold" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#FFE08A"/>
+      <stop offset="1" stop-color="#C98B12"/>
+    </linearGradient>
+    <clipPath id="dc"><circle cx="256" cy="282" r="132"/></clipPath>
+  </defs>
+  <rect width="512" height="512" fill="url(#bg)"/>
+  <circle cx="256" cy="275" r="230" fill="url(#glow)"/>
+  <g transform="translate(256 256) scale(0.84) translate(-256 -262)">
+  <!-- sparkles -->
+  <g fill="#FFE08A">
+    <path d="M112 120 l6 16 16 6 -16 6 -6 16 -6 -16 -16 -6 16 -6z"/>
+    <path d="M404 96 l4 11 11 4 -11 4 -4 11 -4 -11 -11 -4 11 -4z" opacity="0.85"/>
+    <path d="M418 400 l4 10 10 4 -10 4 -4 10 -4 -10 -10 -4 10 -4z" opacity="0.7"/>
+    <circle cx="96" cy="380" r="4" opacity="0.7"/>
+    <circle cx="150" cy="70" r="3" opacity="0.6"/>
+  </g>
+  <!-- orbit, back half -->
+  <g transform="rotate(-18 256 282)">
+    <path d="M56 282 A200 62 0 0 1 456 282" fill="none" stroke="#14B8A6" stroke-width="14" stroke-linecap="round" opacity="0.9"/>
+  </g>
+  <!-- hanging loop -->
+  <circle cx="256" cy="128" r="26" fill="none" stroke="url(#gold)" stroke-width="12"/>
+  <rect x="230" y="140" width="52" height="24" rx="8" fill="url(#gold)"/>
+  <!-- ornament disc -->
+  <circle cx="256" cy="282" r="132" fill="url(#disc)"/>
+  <g clip-path="url(#dc)" stroke="#B89B6A" stroke-opacity="0.18" stroke-width="2">
+    <path d="M100 166H412M100 178H412M100 190H412M100 202H412M100 214H412M100 226H412M100 238H412M100 250H412M100 262H412M100 274H412M100 286H412M100 298H412M100 310H412M100 322H412M100 334H412M100 346H412M100 358H412M100 370H412M100 382H412M100 394H412M100 406H412"/>
+  </g>
+  <text x="256" y="312" text-anchor="middle" font-family="Poppins" font-weight="700" font-size="92" fill="#E5383B" letter-spacing="-2">Ava</text>
+  <!-- orbit, front half -->
+  <g transform="rotate(-18 256 282)">
+    <path d="M456 282 A200 62 0 0 1 56 282" fill="none" stroke="#14B8A6" stroke-width="14" stroke-linecap="round"/>
+    <circle cx="456" cy="282" r="17" fill="#E5383B" stroke="#0B1236" stroke-width="5"/>
+  </g>
+  </g>
+</svg>
